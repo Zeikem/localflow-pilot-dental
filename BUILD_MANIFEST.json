@@ -1,0 +1,36 @@
+{
+  "name": "LocalFlow Core",
+  "version": "0.3.0",
+  "validated_tests": 38,
+  "test_status": "PASS",
+  "market_initial": "León, Guanajuato",
+  "vertical_initial": "Clínicas dentales",
+  "expandable_verticals": [
+    "Ópticas",
+    "Fisioterapia"
+  ],
+  "core_flow": [
+    "Google Maps/enlace",
+    "WhatsApp",
+    "calificación",
+    "agenda",
+    "confirmación",
+    "recordatorio",
+    "reseña/handoff"
+  ],
+  "features": [
+    "multi-tenant",
+    "WhatsApp Cloud API",
+    "internal scheduling",
+    "Google Calendar adapter",
+    "double-booking protection",
+    "safe rescheduling",
+    "template-based scheduled messages",
+    "appointment reminders",
+    "Google review request",
+    "human handoff/reactivation",
+    "retry workers",
+    "SQL migrations"
+  ],
+  "requires_real_credentials_for_go_live": true
+}

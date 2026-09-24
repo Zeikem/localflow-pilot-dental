@@ -1,0 +1,169 @@
+{
+  "slug": "dental-demo",
+  "name": "Clínica Dental Demo",
+  "niche": "dental",
+  "timezone": "America/Mexico_City",
+  "whatsapp_phone_number_id": "REEMPLAZAR_DENTAL_PHONE_NUMBER_ID",
+  "whatsapp_token_env": "DENTAL_DEMO_WHATSAPP_TOKEN",
+  "workflow_spec": {
+    "handoff_message": "Claro. Una persona del equipo continuará contigo.",
+    "steps": [
+      {
+        "key": "nombre",
+        "prompt": "¡Hola! Para ayudarte, ¿cuál es tu nombre?"
+      },
+      {
+        "key": "servicio",
+        "prompt": "¿Qué servicio te interesa?",
+        "kind": "choice",
+        "choices": [
+          "Valoración",
+          "Limpieza",
+          "Ortodoncia",
+          "Implantes",
+          "Otro"
+        ]
+      },
+      {
+        "key": "urgencia",
+        "prompt": "Antes de mostrar horarios: ¿necesitas atención hoy por una situación urgente?",
+        "kind": "choice",
+        "choices": [
+          "Sí, necesito atención hoy",
+          "No, puedo agendar"
+        ]
+      }
+    ],
+    "schedule": {
+      "provider": "internal",
+      "slot_minutes": 15,
+      "hold_minutes": 10,
+      "booking_horizon_days": 14,
+      "min_notice_minutes": 60,
+      "resources": [
+        {
+          "key": "recurso-1",
+          "name": "Agenda principal"
+        }
+      ],
+      "services": [
+        {
+          "key": "valoracion",
+          "label": "Valoración",
+          "duration_minutes": 45,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "limpieza",
+          "label": "Limpieza",
+          "duration_minutes": 60,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "ortodoncia",
+          "label": "Ortodoncia",
+          "duration_minutes": 45,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "implantes",
+          "label": "Implantes",
+          "duration_minutes": 60,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        }
+      ],
+      "weekly_hours": {
+        "0": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "1": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "2": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "3": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "4": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "5": [
+          [
+            "09:00",
+            "14:00"
+          ]
+        ],
+        "6": []
+      },
+      "closed_dates": []
+    },
+    "automations": {
+      "google_review_url": "REEMPLAZAR_URL_RESEÑA_GOOGLE",
+      "appointment_reminder": {
+        "enabled": false,
+        "before_minutes": 1440,
+        "template_name": "recordatorio_cita_localflow",
+        "language": "es_MX"
+      },
+      "review_request": {
+        "enabled": false,
+        "after_minutes": 120,
+        "template_name": "solicitud_resena_localflow",
+        "language": "es_MX"
+      }
+    },
+    "handoff_rules": [
+      {
+        "field": "urgencia",
+        "values": [
+          "Sí, necesito atención hoy"
+        ],
+        "message": "Por tratarse de una solicitud urgente, no voy a intentar evaluarla por WhatsApp. Una persona de la clínica continuará contigo para indicarte la atención disponible."
+      }
+    ]
+  }
+}

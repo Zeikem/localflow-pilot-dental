@@ -1,0 +1,151 @@
+{
+  "slug": "optica-demo",
+  "name": "Óptica Demo",
+  "niche": "optica",
+  "timezone": "America/Mexico_City",
+  "whatsapp_phone_number_id": "REEMPLAZAR_OPTICA_PHONE_NUMBER_ID",
+  "whatsapp_token_env": "OPTICA_DEMO_WHATSAPP_TOKEN",
+  "workflow_spec": {
+    "handoff_message": "Claro. Una persona del equipo continuará contigo.",
+    "steps": [
+      {
+        "key": "nombre",
+        "prompt": "¡Hola! Para ayudarte, ¿cuál es tu nombre?"
+      },
+      {
+        "key": "servicio",
+        "prompt": "¿Qué necesitas?",
+        "kind": "choice",
+        "choices": [
+          "Examen visual",
+          "Lentes graduados",
+          "Lentes de contacto",
+          "Armazones",
+          "Otro"
+        ]
+      }
+    ],
+    "schedule": {
+      "provider": "internal",
+      "slot_minutes": 15,
+      "hold_minutes": 10,
+      "booking_horizon_days": 14,
+      "min_notice_minutes": 60,
+      "resources": [
+        {
+          "key": "recurso-1",
+          "name": "Agenda principal"
+        }
+      ],
+      "services": [
+        {
+          "key": "examen_visual",
+          "label": "Examen visual",
+          "duration_minutes": 30,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "lentes_graduados",
+          "label": "Lentes graduados",
+          "duration_minutes": 30,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "lentes_contacto",
+          "label": "Lentes de contacto",
+          "duration_minutes": 30,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "armazones",
+          "label": "Armazones",
+          "duration_minutes": 30,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        }
+      ],
+      "weekly_hours": {
+        "0": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "1": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "2": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "3": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "4": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "5": [
+          [
+            "09:00",
+            "14:00"
+          ]
+        ],
+        "6": []
+      },
+      "closed_dates": []
+    },
+    "automations": {
+      "google_review_url": "REEMPLAZAR_URL_RESEÑA_GOOGLE",
+      "appointment_reminder": {
+        "enabled": false,
+        "before_minutes": 1440,
+        "template_name": "recordatorio_cita_localflow",
+        "language": "es_MX"
+      },
+      "review_request": {
+        "enabled": false,
+        "after_minutes": 120,
+        "template_name": "solicitud_resena_localflow",
+        "language": "es_MX"
+      }
+    }
+  }
+}

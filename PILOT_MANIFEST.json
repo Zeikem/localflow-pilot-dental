@@ -1,0 +1,25 @@
+{
+  "name": "LocalFlow Pilot Dental",
+  "base_version": "0.3.0",
+  "status": "deployment-ready; external accounts pending",
+  "validated_tests": 38,
+  "compile_status": "PASS",
+  "migration_smoke_status": "PASS",
+  "target_market": "León, Guanajuato",
+  "target_vertical": "Clínicas dentales",
+  "deployment_target": "Railway",
+  "services": [
+    "api",
+    "outbox-worker",
+    "calendar-worker",
+    "postgresql"
+  ],
+  "pending_external_actions": [
+    "Connect GitHub",
+    "Connect Railway",
+    "Connect Google Calendar",
+    "Provide/configure WhatsApp Cloud API account values",
+    "Approve WhatsApp reminder/review templates",
+    "Provide clinic pilot business data"
+  ]
+}

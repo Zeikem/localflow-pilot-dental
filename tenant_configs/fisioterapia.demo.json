@@ -1,0 +1,151 @@
+{
+  "slug": "fisioterapia-demo",
+  "name": "Fisioterapia Demo",
+  "niche": "fisioterapia",
+  "timezone": "America/Mexico_City",
+  "whatsapp_phone_number_id": "REEMPLAZAR_FISIO_PHONE_NUMBER_ID",
+  "whatsapp_token_env": "FISIO_DEMO_WHATSAPP_TOKEN",
+  "workflow_spec": {
+    "handoff_message": "Claro. Una persona del equipo continuará contigo.",
+    "steps": [
+      {
+        "key": "nombre",
+        "prompt": "¡Hola! Para ayudarte, ¿cuál es tu nombre?"
+      },
+      {
+        "key": "servicio",
+        "prompt": "¿Qué tipo de atención buscas?",
+        "kind": "choice",
+        "choices": [
+          "Valoración",
+          "Rehabilitación",
+          "Fisioterapia deportiva",
+          "Postoperatorio",
+          "Otro"
+        ]
+      }
+    ],
+    "schedule": {
+      "provider": "internal",
+      "slot_minutes": 15,
+      "hold_minutes": 10,
+      "booking_horizon_days": 14,
+      "min_notice_minutes": 60,
+      "resources": [
+        {
+          "key": "recurso-1",
+          "name": "Agenda principal"
+        }
+      ],
+      "services": [
+        {
+          "key": "valoracion",
+          "label": "Valoración",
+          "duration_minutes": 60,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "rehabilitacion",
+          "label": "Rehabilitación",
+          "duration_minutes": 60,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "deportiva",
+          "label": "Fisioterapia deportiva",
+          "duration_minutes": 60,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        },
+        {
+          "key": "postoperatorio",
+          "label": "Postoperatorio",
+          "duration_minutes": 60,
+          "resource_keys": [
+            "recurso-1"
+          ]
+        }
+      ],
+      "weekly_hours": {
+        "0": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "1": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "2": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "3": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "4": [
+          [
+            "09:00",
+            "14:00"
+          ],
+          [
+            "16:00",
+            "19:00"
+          ]
+        ],
+        "5": [
+          [
+            "09:00",
+            "14:00"
+          ]
+        ],
+        "6": []
+      },
+      "closed_dates": []
+    },
+    "automations": {
+      "google_review_url": "REEMPLAZAR_URL_RESEÑA_GOOGLE",
+      "appointment_reminder": {
+        "enabled": false,
+        "before_minutes": 1440,
+        "template_name": "recordatorio_cita_localflow",
+        "language": "es_MX"
+      },
+      "review_request": {
+        "enabled": false,
+        "after_minutes": 120,
+        "template_name": "solicitud_resena_localflow",
+        "language": "es_MX"
+      }
+    }
+  }
+}
