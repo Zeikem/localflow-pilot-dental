@@ -108,7 +108,7 @@ def _parse_time(text: str) -> tuple[int, int] | None:
             continue
 
         hour = int(match.group(1))
-        minute = int(match.group(2) or 0)
+        minute = int((match.group(2) if len(match.groups()) >= 2 else None) or 0)
         if minute > 59:
             return None
 
@@ -130,6 +130,8 @@ def _parse_time(text: str) -> tuple[int, int] | None:
         elif not 0 <= hour <= 23:
             return None
 
+        if index == 3 and 1 <= hour <= 12:
+            return None  # Ask AM/PM instead of choosing a different appointment.
         return hour, minute
 
     return None
@@ -140,7 +142,7 @@ def _parse_date(text: str, local_now: datetime) -> datetime | None:
 
     if re.search(r"\bhoy\b", normalized):
         return local_now
-    if re.search(r"\bmanana\b", normalized):
+    if re.search(r"(?<!de la )\bmanana\b", normalized):
         return local_now + timedelta(days=1)
 
     for name, weekday in _WEEKDAYS.items():

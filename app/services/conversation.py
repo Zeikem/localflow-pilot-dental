@@ -10,6 +10,7 @@ from app.models import Appointment, InboundEvent, Lead, OutboxMessage, Tenant
 from app.services.calendar_provider import get_calendar_provider
 from app.services.google_calendar import GoogleCalendarAPIError, GoogleCalendarConfigError
 from app.services.intake import interpret_intake
+from app.services.direct_booking import try_direct_booking
 from app.services.scheduling import (
     AppointmentStateError,
     ScheduleConfigError,
@@ -417,6 +418,13 @@ def process_inbound_message(db: Session, msg: InboundWhatsAppMessage) -> bool:
         )
     )
 
+    lead.last_user_message_at = datetime.now(timezone.utc)
+
+    if lead.status == "human_handoff":
+        # También guardar multimedia sin interrumpir la atención humana.
+        db.commit()
+        return True
+
     if msg.message_type != "text" or not msg.text:
         _queue(
             db,
@@ -425,13 +433,6 @@ def process_inbound_message(db: Session, msg: InboundWhatsAppMessage) -> bool:
             "Por ahora puedo continuar por texto. Si prefieres atención de una persona, "
             "escribe *ASESOR*.",
         )
-        db.commit()
-        return True
-
-    lead.last_user_message_at = datetime.now(timezone.utc)
-
-    if lead.status == "human_handoff":
-        # El bot no vuelve a intervenir hasta que un operador reactive el lead.
         db.commit()
         return True
 
@@ -460,6 +461,20 @@ def process_inbound_message(db: Session, msg: InboundWhatsAppMessage) -> bool:
     if hints.requested_start is not None:
         answers["_requested_start"] = hints.requested_start.isoformat()
     lead.answers = answers
+
+    handoff = _completed_handoff_rule(tenant, hints.answers)
+    if handoff:
+        lead.status = "human_handoff"
+        lead.current_step = None
+        _queue(db, tenant, lead, handoff)
+        db.commit()
+        return True
+
+    direct_reply = try_direct_booking(db, tenant, lead, msg, hints)
+    if direct_reply is not None:
+        _queue(db, tenant, lead, direct_reply)
+        db.commit()
+        return True
 
     schedule_reply = _handle_schedule_state(db, tenant, lead, msg)
     if schedule_reply is not None:

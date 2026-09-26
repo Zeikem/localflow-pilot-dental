@@ -126,10 +126,16 @@ class GoogleCalendarGateway:
                 "Google Calendar no respondió al consultar disponibilidad."
             ) from exc
 
-        calendars = response.get("calendars", {})
+        calendars = response.get("calendars") if isinstance(response, dict) else None
+        if not isinstance(calendars, dict):
+            raise GoogleCalendarAPIError("Google Calendar devolvió disponibilidad incompleta.")
         result: dict[str, list[BusyInterval]] = {}
         for calendar_id in calendar_ids:
-            data = calendars.get(calendar_id, {})
+            data = calendars.get(calendar_id)
+            if not isinstance(data, dict) or not isinstance(data.get("busy"), list):
+                raise GoogleCalendarAPIError(
+                    "Google Calendar devolvió disponibilidad incompleta."
+                )
             if data.get("errors"):
                 raise GoogleCalendarAPIError(
                     f"Google Calendar devolvió un error para {calendar_id}."

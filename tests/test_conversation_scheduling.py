@@ -96,12 +96,15 @@ class ConversationSchedulingTests(unittest.TestCase):
             text=text,
             raw={"test": True},
         )
-        return process_inbound_message(self.db, msg)
+        previous_ids = set(self.db.scalars(select(OutboxMessage.id)).all())
+        processed = process_inbound_message(self.db, msg)
+        for reply in self.db.scalars(select(OutboxMessage)).all():
+            if reply.id not in previous_ids:
+                self._last_reply = reply.body
+        return processed
 
     def last_reply(self):
-        return self.db.scalars(
-            select(OutboxMessage).order_by(OutboxMessage.created_at.desc())
-        ).first().body
+        return self._last_reply
 
     def lead(self):
         return self.db.scalar(select(Lead).where(Lead.wa_id == "5210000000000"))
