@@ -9,6 +9,7 @@ from app.domain.workflow import ConversationEngine
 from app.models import Appointment, InboundEvent, Lead, OutboxMessage, Tenant
 from app.services.calendar_provider import get_calendar_provider
 from app.services.google_calendar import GoogleCalendarAPIError, GoogleCalendarConfigError
+from app.services.intake import interpret_intake
 from app.services.scheduling import (
     AppointmentStateError,
     ScheduleConfigError,
@@ -110,8 +111,34 @@ def _offer_slots(
     rescheduling_from: str | None = None,
 ) -> str:
     provider = get_calendar_provider(tenant)
+    answers = dict(lead.answers or {})
+    requested_raw = answers.get("_requested_start")
+    requested_start = None
+    if requested_raw:
+        try:
+            requested_start = datetime.fromisoformat(str(requested_raw))
+        except ValueError:
+            requested_start = None
+
     try:
-        slots = provider.list_available_slots(db, tenant, service_key, limit=5)
+        if requested_start is not None:
+            requested_local = requested_start.astimezone(ZoneInfo(tenant.timezone))
+            slots = provider.list_available_slots(
+                db,
+                tenant,
+                service_key,
+                start_date=requested_local.date(),
+                days=3,
+                limit=30,
+            )
+            slots = sorted(
+                slots,
+                key=lambda slot: abs(
+                    (slot.start_at - requested_start.astimezone(timezone.utc)).total_seconds()
+                ),
+            )[:5]
+        else:
+            slots = provider.list_available_slots(db, tenant, service_key, limit=5)
     except (GoogleCalendarAPIError, GoogleCalendarConfigError):
         lead.status = "human_handoff"
         lead.current_step = None
@@ -422,6 +449,17 @@ def process_inbound_message(db: Session, msg: InboundWhatsAppMessage) -> bool:
         )
         db.commit()
         return True
+
+    # Extraemos hechos útiles del lenguaje natural sin dar autoridad a la IA
+    # sobre disponibilidad. El backend conserva la decisión y la agenda valida.
+    hints = interpret_intake(tenant, msg.text)
+    answers = dict(lead.answers or {})
+    for key, value in hints.answers.items():
+        if key not in answers:
+            answers[key] = value
+    if hints.requested_start is not None:
+        answers["_requested_start"] = hints.requested_start.isoformat()
+    lead.answers = answers
 
     schedule_reply = _handle_schedule_state(db, tenant, lead, msg)
     if schedule_reply is not None:

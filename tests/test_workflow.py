@@ -46,6 +46,25 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(invalid.current_step, "servicio")
         self.assertIn("Elige una de las opciones", invalid.reply)
 
+    def test_prefilled_answer_skips_that_question(self):
+        first = self.engine.process(
+            SPEC,
+            None,
+            {"servicio": "Limpieza"},
+            "Hola, quiero limpieza",
+        )
+        self.assertEqual(first.current_step, "nombre")
+        self.assertEqual(first.reply, "¿Nombre?")
+
+        done = self.engine.process(
+            SPEC,
+            first.current_step,
+            first.answers,
+            "Adrián",
+        )
+        self.assertTrue(done.completed)
+        self.assertEqual(done.answers["servicio"], "Limpieza")
+
 
 if __name__ == "__main__":
     unittest.main()
