@@ -94,6 +94,31 @@ def normalize_answer(step: WorkflowStep, value: str) -> str:
 
 
 class ConversationEngine:
+    @staticmethod
+    def _next_unanswered(
+        steps: list[WorkflowStep],
+        answers: dict[str, Any],
+        *,
+        after_index: int = -1,
+    ) -> WorkflowStep | None:
+        for step in steps[after_index + 1:]:
+            if step.key not in answers:
+                return step
+        return None
+
+    @staticmethod
+    def _completed(spec: dict, answers: dict[str, Any]) -> WorkflowResult:
+        completion = spec.get(
+            "completion_message",
+            "Gracias. Ya tengo tus datos. Enseguida continuamos con tu solicitud.",
+        )
+        return WorkflowResult(
+            current_step=None,
+            answers=answers,
+            reply=str(completion),
+            completed=True,
+        )
+
     def process(
         self,
         spec: dict,
@@ -104,9 +129,12 @@ class ConversationEngine:
         steps = load_steps(spec)
         answers = dict(answers or {})
 
-        # Primer contacto: no consumimos "Hola" como nombre.
+        # Primer contacto: no consumimos el saludo como respuesta. Si el
+        # intérprete ya obtuvo servicio/urgencia del texto, saltamos esos pasos.
         if current_step is None:
-            first = steps[0]
+            first = self._next_unanswered(steps, answers)
+            if first is None:
+                return self._completed(spec, answers)
             return WorkflowResult(
                 current_step=first.key,
                 answers=answers,
@@ -131,20 +159,10 @@ class ConversationEngine:
                 completed=False,
             )
 
-        next_idx = step_idx + 1
-        if next_idx >= len(steps):
-            completion = spec.get(
-                "completion_message",
-                "Gracias. Ya tengo tus datos. Enseguida continuamos con tu solicitud.",
-            )
-            return WorkflowResult(
-                current_step=None,
-                answers=answers,
-                reply=str(completion),
-                completed=True,
-            )
+        next_step = self._next_unanswered(steps, answers, after_index=step_idx)
+        if next_step is None:
+            return self._completed(spec, answers)
 
-        next_step = steps[next_idx]
         return WorkflowResult(
             current_step=next_step.key,
             answers=answers,
