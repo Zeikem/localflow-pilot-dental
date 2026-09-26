@@ -1,0 +1,27 @@
+name: publish-ghcr
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push production image
+        run: |
+          docker build -t ghcr.io/zeikem/localflow-pilot-dental:railway .
+          docker push ghcr.io/zeikem/localflow-pilot-dental:railway
