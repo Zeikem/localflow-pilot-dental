@@ -1,0 +1,22 @@
+name: meta-webhook-repair
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Inspect Meta subscriptions before repair
+        run: |
+          curl --fail-with-body --silent --show-error             "https://api-image-production-7f8d.up.railway.app/webhooks/whatsapp/diagnostic?token=localflow_verify_webhook_2026"             | tee before.json
+      - name: Repair Meta subscriptions
+        run: |
+          curl --fail-with-body --silent --show-error -X POST             "https://api-image-production-7f8d.up.railway.app/webhooks/whatsapp/diagnostic/repair?token=localflow_verify_webhook_2026"             | tee repair.json
+      - name: Inspect Meta subscriptions after repair
+        run: |
+          curl --fail-with-body --silent --show-error             "https://api-image-production-7f8d.up.railway.app/webhooks/whatsapp/diagnostic?token=localflow_verify_webhook_2026"             | tee after.json
