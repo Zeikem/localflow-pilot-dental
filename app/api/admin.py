@@ -1,12 +1,14 @@
 import hmac
 
 from fastapi import APIRouter, Depends, Header, HTTPException
+from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_db
 from app.services.operator import LeadOperationError, reactivate_lead
+from app.services.readiness import check_readiness
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -56,3 +58,15 @@ def reactivate(
         "current_step": lead.current_step,
         "reset_flow": request.reset_flow,
     }
+
+
+@router.get("/readiness", dependencies=[Depends(require_admin_token)])
+def readiness(tenant_slug: str = "dental-pilot-leon", db: Session = Depends(get_db)):
+    """Report configuration completeness, never external connectivity guarantees."""
+    try:
+        return check_readiness(db, tenant_slug)
+    except SQLAlchemyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Database readiness check unavailable.",
+        ) from exc
