@@ -20,3 +20,5 @@ jobs:
         run: python -m compileall -q app tests
       - name: Test
         run: python -m unittest discover -s tests -v
+      - name: Demo offline
+        run: python -m app.demo --json
