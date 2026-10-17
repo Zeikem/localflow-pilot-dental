@@ -102,6 +102,49 @@ class DirectBookingTests(unittest.TestCase):
         self.assertNotIn('_direct_booking_pending', self.lead().answers)
         self.assertIsNone(self.db.scalar(select(Appointment)))
 
+    def test_short_time_follow_up_keeps_original_day(self):
+        self.send('Quiero una cita mañana a las 4')
+        pending = self.lead().answers['_direct_booking_pending']
+        self.assertTrue(pending['date'])
+        self.assertIsNone(pending['time'])
+        self.send('4 pm')
+        self.assertEqual(self.lead().status, 'booked')
+        self.assertEqual(len(self.gateway.created), 1)
+        self.assertIn('16:00', self.last_reply())
+        self.assertNotIn('_direct_booking_pending', self.lead().answers)
+
+    def test_short_day_follow_up_keeps_original_time(self):
+        self.send('Quiero una cita a las 4 pm')
+        self.assertIn('qué día', self.last_reply().lower())
+        pending = self.lead().answers['_direct_booking_pending']
+        self.assertIsNone(pending['date'])
+        self.assertEqual(pending['time'], [16, 0])
+        self.send('mañana')
+        self.assertEqual(self.lead().status, 'booked')
+        self.assertEqual(len(self.gateway.created), 1)
+        self.assertIn('16:00', self.last_reply())
+
+    def test_unavailable_slot_short_time_follow_up_keeps_day(self):
+        start = datetime.now(ZoneInfo('America/Mexico_City')).replace(
+            hour=16, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+        self.gateway.busy_map = {
+            'test-calendar': [BusyInterval(start, start + timedelta(hours=1))]
+        }
+        self.send('Quiero una cita mañana a las 4 pm')
+        self.assertIn('no está disponible', self.last_reply())
+        self.gateway.busy_map = {}
+        self.send('5 pm')
+        self.assertEqual(self.lead().status, 'booked')
+        self.assertEqual(len(self.gateway.created), 1)
+        self.assertIn('17:00', self.last_reply())
+
+    def test_service_survives_short_time_follow_up(self):
+        self.send('Quiero limpieza mañana a las 4')
+        self.send('4 pm')
+        self.assertEqual(self.lead().status, 'booked')
+        self.assertEqual(self.db.scalar(select(Appointment)).service_key, 'limpieza')
+
     def test_negative_request_never_books(self):
         self.send('No quiero una cita mañana a las 4 pm')
         self.assertIsNone(self.db.scalar(select(Appointment)))
