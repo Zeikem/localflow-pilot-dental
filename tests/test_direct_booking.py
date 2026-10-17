@@ -69,6 +69,39 @@ class DirectBookingTests(unittest.TestCase):
         self.assertIn('am o pm', self.last_reply())
         self.assertIsNone(self.db.scalar(select(Appointment)))
 
+    def test_time_clarification_continues_existing_booking_request(self):
+        self.send('Quiero una cita mañana a las 4')
+        self.assertIn('am o pm', self.last_reply())
+        self.assertTrue(self.lead().answers.get('_direct_booking_pending'))
+        self.send('mañana a las 4 pm')
+        self.assertEqual(self.lead().status, 'booked')
+        self.assertIsNotNone(self.db.scalar(select(Appointment)))
+        self.assertEqual(len(self.gateway.created), 1)
+        self.assertNotIn('_direct_booking_pending', self.lead().answers)
+
+    def test_unavailable_time_accepts_follow_up_without_new_booking_phrase(self):
+        start = datetime.now(ZoneInfo('America/Mexico_City')).replace(
+            hour=16, minute=0, second=0, microsecond=0
+        ) + timedelta(days=1)
+        self.gateway.busy_map = {
+            'test-calendar': [BusyInterval(start, start + timedelta(hours=1))]
+        }
+        self.send('Quiero una cita mañana a las 4 pm')
+        self.assertIn('no está disponible', self.last_reply())
+        self.assertTrue(self.lead().answers.get('_direct_booking_pending'))
+        self.gateway.busy_map = {}
+        self.send('mañana a las 5 pm')
+        self.assertEqual(self.lead().status, 'booked')
+        self.assertEqual(len(self.gateway.created), 1)
+        self.assertIn('17:00', self.last_reply())
+
+    def test_negative_follow_up_drops_pending_direct_booking(self):
+        self.send('Quiero una cita mañana a las 4')
+        self.assertTrue(self.lead().answers.get('_direct_booking_pending'))
+        self.send('No quiero agendar')
+        self.assertNotIn('_direct_booking_pending', self.lead().answers)
+        self.assertIsNone(self.db.scalar(select(Appointment)))
+
     def test_negative_request_never_books(self):
         self.send('No quiero una cita mañana a las 4 pm')
         self.assertIsNone(self.db.scalar(select(Appointment)))
