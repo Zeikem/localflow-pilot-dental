@@ -12,7 +12,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.api.admin import router as admin_router
 from app.db import Base, get_db
-from app.models import Tenant
+from app.models import InboundEvent, OutboxMessage, Tenant
 from app.services.readiness import check_readiness
 
 
@@ -90,6 +90,32 @@ class ReadinessTests(unittest.TestCase):
             result = check_readiness(self.db, "nonexistent")
         self.assertEqual(result["status"], "incomplete")
         self.assertFalse(result["checks"]["tenant_active"])
+
+    def test_activity_counts_do_not_expose_messages_or_contact_data(self):
+        self.db.add(InboundEvent(
+            tenant_id=self.tenant.id,
+            wa_id="secret-test-phone",
+            message_id="test-event-private",
+            message_type="text",
+            text="private-test-message",
+            raw_payload={"private": "do-not-echo"},
+        ))
+        self.db.add(OutboxMessage(
+            tenant_id=self.tenant.id,
+            to_wa_id="secret-test-phone",
+            body="private-test-message",
+            status="delivery_unknown",
+            last_error="private-provider-details",
+        ))
+        self.db.commit()
+        with patch("app.services.readiness.get_settings", return_value=self.mock_settings):
+            result = check_readiness(self.db, "dental-pilot-leon")
+        self.assertEqual(result["activity"]["incoming_events"], 1)
+        self.assertEqual(result["activity"]["outbox_delivery_unknown"], 1)
+        self.assertEqual(result["activity"]["outbox_accepted"], 0)
+        self.assertNotIn("secret-test-phone", str(result))
+        self.assertNotIn("private-test-message", str(result))
+        self.assertNotIn("private-provider-details", str(result))
 
     def test_admin_endpoint_rejects_unauthorized_and_exposes_no_secrets(self):
         app = FastAPI()
