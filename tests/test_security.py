@@ -9,7 +9,7 @@ import httpx
 
 from app.core.security import verify_meta_signature
 from app.models import Tenant
-from app.services.whatsapp import WhatsAppClient, WhatsAppSendError
+from app.services.whatsapp import WhatsAppAcknowledgementError, WhatsAppClient, WhatsAppSendError
 
 
 class SignatureTests(unittest.TestCase):
@@ -72,12 +72,12 @@ class WhatsAppAcknowledgementTests(unittest.TestCase):
 
     def test_http_200_without_message_id_does_not_mark_text_as_sent(self):
         with self._stub_meta(httpx.Response(200, json={"messages": []})):
-            with self.assertRaises(WhatsAppSendError):
+            with self.assertRaises(WhatsAppAcknowledgementError):
                 self.client.send_text(self.tenant, "5210000000000", "Hola")
 
     def test_http_200_without_message_id_does_not_mark_template_as_sent(self):
         with self._stub_meta(httpx.Response(200, json={})):
-            with self.assertRaises(WhatsAppSendError):
+            with self.assertRaises(WhatsAppAcknowledgementError):
                 self.client.send_template(
                     self.tenant, "5210000000000",
                     template_name="test_template", language_code="es_MX",
@@ -94,6 +94,65 @@ class WhatsAppAcknowledgementTests(unittest.TestCase):
                 self.client.send_text(self.tenant, "5210000000000", "Hola")
         self.assertIn("403", str(raised.exception))
         self.assertNotIn("sensitive-provider-data", str(raised.exception))
+
+
+
+class OutboxDeliveryUnknownTests(unittest.TestCase):
+    def test_ambiguous_acknowledgement_never_retries_automatically(self):
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+        from sqlalchemy.pool import StaticPool
+        from app.db import Base
+        from app.models import OutboxMessage
+        from app.workers.outbox import deliver
+
+        engine = create_engine(
+            "sqlite://", connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
+        )
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine, expire_on_commit=False)
+        try:
+            with Session() as db:
+                tenant = Tenant(
+                    slug="unknown-delivery",
+                    name="Unknown Delivery",
+                    niche="dental",
+                    whatsapp_phone_number_id="TEST-OUTBOX",
+                    whatsapp_token_env="TEST-WA-OUTBOX",
+                    workflow_spec={},
+                )
+                db.add(tenant)
+                db.flush()
+                msg = OutboxMessage(
+                    tenant_id=tenant.id,
+                    to_wa_id="5210000000000",
+                    body="confirmación",
+                    status="sending",
+                )
+                db.add(msg)
+                db.commit()
+                message_id = msg.id
+
+            class AmbiguousClient:
+                called = 0
+                def send_text(self, **kwargs):
+                    self.called += 1
+                    raise WhatsAppAcknowledgementError("Sin identificador de Meta")
+
+            client = AmbiguousClient()
+            with patch("app.workers.outbox.SessionLocal", side_effect=Session):
+                deliver(message_id, client)
+                deliver(message_id, client)
+
+            with Session() as db:
+                row = db.get(OutboxMessage, message_id)
+                self.assertEqual(row.status, "delivery_unknown")
+                self.assertEqual(row.attempts, 1)
+                self.assertEqual(client.called, 1)
+        finally:
+            Base.metadata.drop_all(engine)
+            engine.dispose()
 
 
 if __name__ == "__main__":
