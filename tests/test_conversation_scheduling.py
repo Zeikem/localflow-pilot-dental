@@ -148,6 +148,9 @@ class ConversationSchedulingTests(unittest.TestCase):
         self.assertNotIn("_schedule_offer", self.lead().answers)
         self.assertIsNone(self.db.scalar(select(Appointment)))
         self.assertIn("cancelé", self.last_reply().casefold())
+        self.send("Hola de nuevo")
+        self.assertNotIn("horarios disponibles", self.last_reply().casefold())
+        self.assertIn("servicio", self.last_reply().casefold())
 
     def test_cancel_rescheduling_offer_preserves_confirmed_appointment(self):
         self.reach_slot_offer()
