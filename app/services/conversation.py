@@ -274,6 +274,12 @@ def _handle_schedule_state(
                     f"{_format_start(tenant, old.start_at)}."
                 )
 
+            # No mostrar automáticamente los mismos horarios en el siguiente saludo.
+            # Conservamos el nombre, pero reiniciamos la intención de agendar.
+            for key in ("servicio", "urgencia", "_requested_start"):
+                answers.pop(key, None)
+            lead.answers = answers
+            lead.current_step = None
             lead.status = "active"
             return "Cancelé la solicitud de horario. Si quieres otra cita, escribe *ASESOR*."
         return _select_slot(db, tenant, lead, msg)
