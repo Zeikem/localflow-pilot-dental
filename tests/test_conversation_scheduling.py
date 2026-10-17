@@ -140,6 +140,29 @@ class ConversationSchedulingTests(unittest.TestCase):
         self.assertEqual(self.lead().status, "human_handoff")
         self.assertIn("persona", self.last_reply().lower())
 
+    def test_cancel_slot_offer_returns_to_active_without_appointment(self):
+        self.reach_slot_offer()
+        self.assertIn("_schedule_offer", self.lead().answers)
+        self.send("CANCELAR")
+        self.assertEqual(self.lead().status, "active")
+        self.assertNotIn("_schedule_offer", self.lead().answers)
+        self.assertIsNone(self.db.scalar(select(Appointment)))
+        self.assertIn("cancelé", self.last_reply().casefold())
+
+    def test_cancel_rescheduling_offer_preserves_confirmed_appointment(self):
+        self.reach_slot_offer()
+        self.send("1")
+        self.send("CONFIRMAR")
+        original_id = self.lead().answers["_confirmed_appointment_id"]
+        self.send("REPROGRAMAR")
+        self.assertEqual(self.lead().status, "awaiting_slot")
+        self.send("CANCELAR")
+        self.assertEqual(self.lead().status, "booked")
+        self.assertEqual(self.db.get(Appointment, original_id).status, "confirmed")
+        self.assertEqual(self.lead().answers["_confirmed_appointment_id"], original_id)
+        self.assertNotIn("_schedule_offer", self.lead().answers)
+        self.assertIn("cita original", self.last_reply().casefold())
+
     def test_cancel_pending_hold_releases_it(self):
         self.reach_slot_offer()
         self.send("1")
