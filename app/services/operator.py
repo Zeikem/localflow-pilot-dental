@@ -22,6 +22,7 @@ def reactivate_lead(
     if reset_flow:
         answers.pop("_schedule_offer", None)
         answers.pop("_pending_appointment_id", None)
+        answers.pop("_direct_booking_pending", None)
         lead.current_step = None
 
     confirmed_id = answers.get("_confirmed_appointment_id")
