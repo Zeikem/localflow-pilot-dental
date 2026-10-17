@@ -15,26 +15,40 @@ def try_direct_booking(db, tenant, lead, msg, hints):
     if not config.get('enabled') or lead.status != 'active':
         return None
     text = _plain(msg.text or '')
-    # Only explicit affirmative booking requests qualify; inquiries and changes do not.
+    answers = dict(lead.answers or {})
+    pending = bool(answers.get('_direct_booking_pending'))
+    # Negations and changes never initiate an automatic booking.
     if re.search(r'\b(no|cancelar|cancelo|reprogramar|cambiar)\b', text):
+        if pending:
+            answers.pop('_direct_booking_pending', None)
+            lead.answers = answers
         return None
-    if not re.search(r'\b(quiero|deseo|necesito|agendame|reservame)\b', text):
+    explicit_request = bool(re.search(
+        r'\b(quiero|deseo|necesito|agendame|reservame)\b', text
+    ))
+    if not explicit_request and not pending:
         return None
-    if not (re.search(r'\bcita\b', text) or hints.answers.get('servicio')):
+    if not (re.search(r'\bcita\b', text) or hints.answers.get('servicio') or pending):
         return None
-    if any(not (lead.answers or {}).get(key) for key in config.get('required_fields', [])):
+    if any(not answers.get(key) for key in config.get('required_fields', [])):
         return None
-    start = hints.requested_start
-    if start is None:
-        return 'Indícame la fecha y la hora con am o pm; por ejemplo: quiero una cita mañana a las 4 pm.'
+
     schedule = spec.get('schedule', {})
     services = schedule.get('services', [])
-    label = hints.answers.get('servicio')
+    label = hints.answers.get('servicio') or answers.get('servicio')
     service = next((item for item in services if
                     (label and item.get('label', item['key']) == label) or
                     (not label and item['key'] == config.get('default_service_key'))), None)
     if service is None:
         return None
+
+    # Keep the original intent so a reply such as "mañana a las 4 pm"
+    # continues the booking instead of restarting the generic intake flow.
+    answers['_direct_booking_pending'] = True
+    lead.answers = answers
+    start = hints.requested_start
+    if start is None:
+        return 'Indícame la fecha y la hora con am o pm; por ejemplo: mañana a las 4 pm.'
     local_now = datetime.now(ZoneInfo(tenant.timezone))
     if not local_now.date() <= start.date() < local_now.date() + timedelta(
             days=int(schedule.get('booking_horizon_days', 14))):
@@ -54,10 +68,14 @@ def try_direct_booking(db, tenant, lead, msg, hints):
     except (SlotUnavailable, AppointmentStateError):
         return 'Ese horario acaba de dejar de estar disponible. Indícame otra fecha y hora.'
     except (GoogleCalendarAPIError, GoogleCalendarConfigError, ScheduleConfigError):
+        answers = dict(lead.answers or {})
+        answers.pop('_direct_booking_pending', None)
+        lead.answers = answers
         lead.status = 'human_handoff'
         lead.current_step = None
         return 'No pude confirmar la cita en la agenda. Recepción continuará contigo para revisar tu solicitud.'
     answers = dict(lead.answers or {})
+    answers.pop('_direct_booking_pending', None)
     answers['_confirmed_appointment_id'] = appointment.id
     answers['servicio'] = service.get('label', service['key'])
     lead.answers = answers
