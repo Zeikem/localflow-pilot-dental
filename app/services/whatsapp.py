@@ -14,6 +14,11 @@ class WhatsAppSendError(RuntimeError):
     pass
 
 
+class WhatsAppAcknowledgementError(WhatsAppSendError):
+    """Meta returned success without a usable message id; automatic retries risk duplicates."""
+    pass
+
+
 class WhatsAppClient:
     def __init__(self, timeout_seconds: float = 15.0):
         self.settings = get_settings()
@@ -26,6 +31,23 @@ class WhatsAppClient:
                 f"Falta la variable de entorno {tenant.whatsapp_token_env}"
             )
         return token
+
+    @staticmethod
+    def _accepted_message_id(response: httpx.Response) -> str:
+        # Meta acknowledging an HTTP request is not evidence of delivery.
+        # A provider message ID is required before the outbox can mark it sent.
+        if response.status_code >= 400:
+            raise WhatsAppSendError(f"Meta rechazó el envío (HTTP {response.status_code}).")
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise WhatsAppAcknowledgementError("Meta devolvió una respuesta no JSON.") from exc
+        messages = payload.get("messages") if isinstance(payload, dict) else None
+        first = messages[0] if isinstance(messages, list) and messages else None
+        message_id = str(first.get("id", "")).strip() if isinstance(first, dict) else ""
+        if not message_id:
+            raise WhatsAppAcknowledgementError("Meta no devolvió un identificador de mensaje.")
+        return message_id
 
     def send_text(self, tenant: Tenant, to_wa_id: str, body: str) -> str | None:
         token = self._token_for(tenant)
@@ -52,16 +74,7 @@ class WhatsAppClient:
                 json=payload,
             )
 
-        if response.status_code >= 400:
-            raise WhatsAppSendError(
-                f"Meta devolvió HTTP {response.status_code}: {response.text[:500]}"
-            )
-
-        data = response.json()
-        messages = data.get("messages") or []
-        if messages and isinstance(messages[0], dict):
-            return messages[0].get("id")
-        return None
+        return self._accepted_message_id(response)
 
 
     def send_template(
@@ -114,13 +127,4 @@ class WhatsAppClient:
                 json=payload,
             )
 
-        if response.status_code >= 400:
-            raise WhatsAppSendError(
-                f"Meta devolvió HTTP {response.status_code}: {response.text[:500]}"
-            )
-
-        data = response.json()
-        messages = data.get("messages") or []
-        if messages and isinstance(messages[0], dict):
-            return messages[0].get("id")
-        return None
+        return self._accepted_message_id(response)

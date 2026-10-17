@@ -6,7 +6,7 @@ from sqlalchemy import or_, select
 
 from app.db import SessionLocal
 from app.models import Appointment, OutboxMessage
-from app.services.whatsapp import WhatsAppClient
+from app.services.whatsapp import WhatsAppAcknowledgementError, WhatsAppClient
 
 
 logging.basicConfig(level=logging.INFO)
@@ -98,6 +98,13 @@ def deliver(message_id: str, client: WhatsAppClient) -> None:
             row.provider_message_id = provider_id
             row.last_error = None
             row.locked_at = None
+        except WhatsAppAcknowledgementError as exc:
+            # HTTP success without an id is ambiguous: do not duplicate a patient message.
+            row.attempts += 1
+            row.status = "delivery_unknown"
+            row.last_error = str(exc)[:2000]
+            row.locked_at = None
+            logger.warning("Meta acknowledgement ambiguous outbox=%s", row.id)
         except Exception as exc:
             row.attempts += 1
             row.last_error = str(exc)[:2000]
