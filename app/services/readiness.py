@@ -5,11 +5,11 @@ background workers have been successfully tested.
 """
 import os
 
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import Tenant
+from app.models import Appointment, CalendarSyncTask, InboundEvent, OutboxMessage, Tenant
 
 
 def check_readiness(db: Session, tenant_slug: str) -> dict:
@@ -64,11 +64,39 @@ def check_readiness(db: Session, tenant_slug: str) -> dict:
                 for resource in resources
             ) and bool(resources)
 
+    # Minimal tenant-scoped activity counters, no content or contact identifiers.
+    def count(model, *filters):
+        if tenant is None:
+            return 0
+        return db.scalar(
+            select(func.count()).select_from(model).where(
+                model.tenant_id == tenant.id, *filters
+            )
+        )
+
+    activity = {
+        "incoming_events": count(InboundEvent),
+        "outbox_pending": count(OutboxMessage, OutboxMessage.status == "pending"),
+        "outbox_accepted": count(OutboxMessage, OutboxMessage.status == "sent"),
+        "outbox_delivery_unknown": count(
+            OutboxMessage, OutboxMessage.status == "delivery_unknown"
+        ),
+        "outbox_failed": count(OutboxMessage, OutboxMessage.status == "failed"),
+        "calendar_tasks_pending": count(
+            CalendarSyncTask, CalendarSyncTask.status == "pending"
+        ),
+        "calendar_tasks_failed": count(
+            CalendarSyncTask, CalendarSyncTask.status == "failed"
+        ),
+        "appointments_confirmed": count(Appointment, Appointment.status == "confirmed"),
+    }
+
     return {
         "status": "configuration_complete" if all(checks.values()) else "incomplete",
         "scope": "api_instance_configuration_only",
         "provider": provider,
         "checks": checks,
+        "activity": activity,
         "external_integrations_verified": False,
         "worker_configuration_verified": False,
     }
