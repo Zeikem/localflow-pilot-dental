@@ -258,6 +258,24 @@ def _handle_schedule_state(
     text = msg.text or ""
 
     if lead.status == "awaiting_slot":
+        if _matches(text, CANCEL_KEYWORDS):
+            answers = dict(lead.answers or {})
+            offer = answers.pop("_schedule_offer", None) or {}
+            answers.pop("_pending_appointment_id", None)
+            lead.answers = answers
+
+            # Cancelling a proposed reschedule must leave the old appointment intact.
+            old_id = offer.get("rescheduling_from")
+            old = db.get(Appointment, old_id) if old_id else None
+            if old and old.status == "confirmed":
+                lead.status = "booked"
+                return (
+                    "Cancelé el cambio de horario. Tu cita original sigue confirmada para "
+                    f"{_format_start(tenant, old.start_at)}."
+                )
+
+            lead.status = "active"
+            return "Cancelé la solicitud de horario. Si quieres otra cita, escribe *ASESOR*."
         return _select_slot(db, tenant, lead, msg)
 
     if lead.status == "awaiting_confirmation":
