@@ -14,6 +14,11 @@ class WhatsAppSendError(RuntimeError):
     pass
 
 
+class WhatsAppAcknowledgementError(WhatsAppSendError):
+    """Meta returned success without a usable message id; automatic retries risk duplicates."""
+    pass
+
+
 class WhatsAppClient:
     def __init__(self, timeout_seconds: float = 15.0):
         self.settings = get_settings()
@@ -36,12 +41,12 @@ class WhatsAppClient:
         try:
             payload = response.json()
         except ValueError as exc:
-            raise WhatsAppSendError("Meta devolvió una respuesta no JSON.") from exc
+            raise WhatsAppAcknowledgementError("Meta devolvió una respuesta no JSON.") from exc
         messages = payload.get("messages") if isinstance(payload, dict) else None
         first = messages[0] if isinstance(messages, list) and messages else None
         message_id = str(first.get("id", "")).strip() if isinstance(first, dict) else ""
         if not message_id:
-            raise WhatsAppSendError("Meta no devolvió un identificador de mensaje.")
+            raise WhatsAppAcknowledgementError("Meta no devolvió un identificador de mensaje.")
         return message_id
 
     def send_text(self, tenant: Tenant, to_wa_id: str, body: str) -> str | None:
