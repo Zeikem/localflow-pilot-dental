@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.admin import router as admin_router
+from app.api.copilot import router as copilot_router
 from app.api.bridge import router as bridge_router
 from app.api.health import router as health_router
 from app.api.whatsapp import router as whatsapp_router
