@@ -10,6 +10,7 @@ from app.models import Appointment, InboundEvent, Lead, OutboxMessage, Tenant
 from app.services.calendar_provider import get_calendar_provider
 from app.services.google_calendar import GoogleCalendarAPIError, GoogleCalendarConfigError
 from app.services.intake import interpret_intake
+from app.services.review_only import record_review_only
 from app.services.direct_booking import try_direct_booking
 from app.services.scheduling import (
     AppointmentStateError,
@@ -400,6 +401,10 @@ def process_inbound_message(db: Session, msg: InboundWhatsAppMessage) -> bool:
     )
     if not tenant:
         return False
+
+    # Opt-in receiving mode for a laboratory pilot: metadata only, no automation.
+    if (tenant.workflow_spec or {}).get('inbound_mode') == 'review_only':
+        return record_review_only(db, tenant, msg)
 
     exists = db.scalar(select(InboundEvent.id).where(InboundEvent.message_id == msg.message_id))
     if exists:

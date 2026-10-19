@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     meta_graph_api_version: str = "v26.0"
     # Safety switch: no outbound WhatsApp traffic until explicitly approved.
     whatsapp_outbound_enabled: bool = False
+    # Separate private key for pseudonymizing inbound contacts in inbox-only mode.
+    localflow_inbound_pseudonym_key: str = ""
 
     # Obligatorio para endpoints /admin en despliegues reales.
     admin_api_token: str = ""

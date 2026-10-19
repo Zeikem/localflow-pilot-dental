@@ -8,8 +8,13 @@ from app.config import get_settings
 from app.core.security import verify_meta_signature
 from app.db import get_db
 from app.services.conversation import process_inbound_message
+from app.services.review_only import (
+    InboundReviewConfigurationError, InboundReviewStorageError,
+)
 from app.services.webhook_parser import extract_inbound_messages
 
+
+MAX_WHATSAPP_PAYLOAD_BYTES = 131072
 
 router = APIRouter(prefix="/webhooks/whatsapp", tags=["whatsapp"])
 logger = logging.getLogger("localflow.webhook")
@@ -33,6 +38,8 @@ def verify_webhook(
 async def receive_webhook(request: Request, db: Session = Depends(get_db)):
     settings = get_settings()
     raw_body = await request.body()
+    if len(raw_body) > MAX_WHATSAPP_PAYLOAD_BYTES:
+        raise HTTPException(status_code=413, detail='Webhook payload exceeds limit')
 
     if not verify_meta_signature(
         raw_body=raw_body,
@@ -54,15 +61,18 @@ async def receive_webhook(request: Request, db: Session = Depends(get_db)):
     processed = 0
 
     for msg in messages:
-        if process_inbound_message(db, msg):
+        try:
+            accepted = process_inbound_message(db, msg)
+        except (InboundReviewConfigurationError, InboundReviewStorageError):
+            # A temporary DB failure must not cause silent message loss;
+            # Meta will retry non-2xx responses.
+            logger.error('whatsapp_review_only_unavailable')
+            raise HTTPException(status_code=503, detail='Review-only receiver unavailable') from None
+        if accepted:
             processed += 1
         else:
-            logger.warning(
-                "whatsapp_message_not_processed phone_number_id=%s message_id=%s type=%s",
-                msg.phone_number_id,
-                msg.message_id,
-                msg.message_type,
-            )
+            # Do not write sender, number or event identifiers to application logs.
+            logger.info('whatsapp_message_ignored_unbound_or_duplicate')
 
     logger.info(
         "whatsapp_webhook_received messages_found=%s processed=%s",
