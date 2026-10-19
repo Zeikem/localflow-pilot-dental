@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.admin import router as admin_router
+from app.api.bridge import router as bridge_router
 from app.api.health import router as health_router
 from app.api.whatsapp import router as whatsapp_router
 from app.config import get_settings
@@ -25,4 +26,5 @@ app = FastAPI(
 
 app.include_router(health_router)
 app.include_router(admin_router)
+app.include_router(bridge_router)
 app.include_router(whatsapp_router)
