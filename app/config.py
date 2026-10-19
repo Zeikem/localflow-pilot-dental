@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     admin_api_token: str = ""
     # Read-only bridge credential. Must never reuse the broad admin token.
     localflow_bridge_read_token: str = ""
+    # Fail-closed pilot tenant binding; one API bridge credential per single clinic.
+    localflow_bridge_tenant_slug: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
