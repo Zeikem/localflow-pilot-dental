@@ -20,7 +20,7 @@ Each query checks an explicitly named **active** tenant and does not enumerate a
 ## Activation process
 
 1. Review this PR and the 61 passing unit tests; merge only after explicit approval.
-2. Railway's current `api-image` service runs `ghcr.io/zeikem/localflow-pilot-dental:railway`, **not** a live GitHub checkout. Merging this PR **will not deploy the changes**. Build and deploy an updated image or connect a suitable repository source, after checking the deployment setup.
+2. **Important: merging is potentially production-affecting.** GitHub's `publish-ghcr.yml` runs on pushes to `main` and **publishes a new image to the same `:railway` tag** that the live `api-image` service references. Railway's automatic redeploy behavior has not been verified. Do NOT merge this PR until a deployment/rollback plan and approval exist; if approved, back up existing configuration, capture the previous image digest and monitor health, webhook and workers. Do not change the image or the running service during code review.
 3. Generate a strong, distinct bridge secret and configure the same value under:
    - Railway `api-image`: `LOCALFLOW_BRIDGE_READ_TOKEN` (32+ chars) **and** `LOCALFLOW_BRIDGE_TENANT_SLUG=dental-pilot-leon`
    - Windows Django private `.env`: `LOCALFLOW_CORE_BRIDGE_READ_TOKEN`
