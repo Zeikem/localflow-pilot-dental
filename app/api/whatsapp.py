@@ -8,7 +8,9 @@ from app.config import get_settings
 from app.core.security import verify_meta_signature
 from app.db import get_db
 from app.services.conversation import process_inbound_message
-from app.services.review_only import InboundReviewConfigurationError
+from app.services.review_only import (
+    InboundReviewConfigurationError, InboundReviewStorageError,
+)
 from app.services.webhook_parser import extract_inbound_messages
 
 
@@ -61,8 +63,10 @@ async def receive_webhook(request: Request, db: Session = Depends(get_db)):
     for msg in messages:
         try:
             accepted = process_inbound_message(db, msg)
-        except InboundReviewConfigurationError:
-            logger.error('whatsapp_review_only_not_configured')
+        except (InboundReviewConfigurationError, InboundReviewStorageError):
+            # A temporary DB failure must not cause silent message loss;
+            # Meta will retry non-2xx responses.
+            logger.error('whatsapp_review_only_unavailable')
             raise HTTPException(status_code=503, detail='Review-only receiver unavailable') from None
         if accepted:
             processed += 1
