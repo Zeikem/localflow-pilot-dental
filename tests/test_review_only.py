@@ -155,6 +155,69 @@ class ReviewOnlyPilotTests(unittest.TestCase):
         self.assertIsNone(event.text)
         self.assertEqual(event.raw_payload, {})
 
+    def test_one_transient_unique_conflict_retries_without_duplicate(self):
+        from sqlalchemy.exc import IntegrityError
+
+        from app.services.review_only import record_review_only
+        from app.services.webhook_parser import InboundWhatsAppMessage
+        message = InboundWhatsAppMessage(
+            message_id='wamid.transient-race', phone_number_id=self.PHONE,
+            wa_id=self.WA, message_type='text', text='No conservar', raw={},
+        )
+        actual_flush = self.db.flush
+        attempts = {"count": 0}
+
+        def maybe_conflict(*args, **kwargs):
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise IntegrityError("synthetic unique race", (), None)
+            return actual_flush(*args, **kwargs)
+
+        with patch.object(self.db, "flush", side_effect=maybe_conflict):
+            self.assertTrue(record_review_only(self.db, self.tenant, message))
+        self.assertEqual(self.db.query(Lead).count(), 1)
+        self.assertEqual(self.db.query(InboundEvent).count(), 1)
+        self.assertEqual(self.db.query(OutboxMessage).count(), 0)
+
+    def test_two_unique_conflicts_fail_without_storing_or_sending(self):
+        from sqlalchemy.exc import IntegrityError
+
+        from app.services.review_only import (
+            InboundReviewStorageError, record_review_only,
+        )
+        from app.services.webhook_parser import InboundWhatsAppMessage
+        message = InboundWhatsAppMessage(
+            message_id='wamid.persistent-race', phone_number_id=self.PHONE,
+            wa_id=self.WA, message_type='text', text='No conservar', raw={},
+        )
+        with patch.object(
+            self.db, "flush",
+            side_effect=IntegrityError("synthetic duplicate", (), None),
+        ):
+            with self.assertRaises(InboundReviewStorageError):
+                record_review_only(self.db, self.tenant, message)
+        self.assertEqual(self.db.query(Lead).count(), 0)
+        self.assertEqual(self.db.query(InboundEvent).count(), 0)
+        self.assertEqual(self.db.query(OutboxMessage).count(), 0)
+
+    def test_storage_failure_makes_webhook_return_503_for_meta_retry(self):
+        from app.services.review_only import InboundReviewStorageError
+        with patch(
+            'app.services.conversation.record_review_only',
+            side_effect=InboundReviewStorageError('synthetic failure'),
+        ):
+            response = self._send(msgid='wamid.synthetic-storage-failure')
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(self.db.query(InboundEvent).count(), 0)
+        self.assertEqual(self.db.query(OutboxMessage).count(), 0)
+
+    def test_untrusted_message_type_is_normalized(self):
+        self.assertEqual(
+            self._send(kind="medical_sensitive_<script>", msgid="wamid.bad-type").status_code,
+            200,
+        )
+        self.assertEqual(self.db.scalar(select(InboundEvent)).message_type, "unknown")
+
     def test_missing_privacy_secret_fails_closed_and_retries(self):
         self.key_settings.localflow_inbound_pseudonym_key = ""
         reply = self._send()
