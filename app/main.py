@@ -6,6 +6,7 @@ from app.api.admin import router as admin_router
 from app.api.copilot import router as copilot_router
 from app.api.bridge import router as bridge_router
 from app.api.health import router as health_router
+from app.api.public_pages import router as public_pages_router
 from app.api.whatsapp import router as whatsapp_router
 from app.config import get_settings
 from app.db import init_db
@@ -26,6 +27,7 @@ app = FastAPI(
 )
 
 app.include_router(health_router)
+app.include_router(public_pages_router)
 app.include_router(admin_router)
 app.include_router(copilot_router)
 app.include_router(bridge_router)
