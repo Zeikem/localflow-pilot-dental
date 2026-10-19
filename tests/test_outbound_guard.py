@@ -12,6 +12,7 @@ from app.services.whatsapp import (
 class OutboundSafetyTests(unittest.TestCase):
     def setUp(self):
         self.tenant = SimpleNamespace(
+            slug="pilot-test",
             whatsapp_token_env="TEST_ONLY_WHATSAPP_ACCESS_TOKEN",
             whatsapp_phone_number_id="FAKE-ID-NOT-IN-META",
         )
@@ -48,13 +49,27 @@ class OutboundSafetyTests(unittest.TestCase):
         response.json.return_value = {"messages": [{"id": "wamid.FAKE"}]}
         instance = MagicMock()
         instance.__enter__.return_value.post.return_value = response
-        with patch.dict(os.environ, {"TEST_ONLY_WHATSAPP_ACCESS_TOKEN": "fake-not-real"}):
+        with patch.dict(os.environ, {"TEST_ONLY_WHATSAPP_ACCESS_TOKEN": "fake-not-real", "LOCALFLOW_OUTBOUND_TENANT_ALLOWLIST": "pilot-test", "LOCALFLOW_OUTBOUND_RECIPIENT_ALLOWLIST": "0000000000000"}):
             with patch("app.services.whatsapp.httpx.Client", return_value=instance):
                 self.assertEqual(
                     client.send_text(self.tenant, "0000000000000", "Hola"),
                     "wamid.FAKE",
                 )
         self.assertIn("FAKE-ID-NOT-IN-META", instance.__enter__.return_value.post.call_args.args[0])
+
+    def test_unlisted_recipient_never_calls_meta(self):
+        self.tenant.workflow_spec = {}
+        with patch("app.services.whatsapp.get_settings",
+                   return_value=SimpleNamespace(whatsapp_outbound_enabled=True)):
+            client = WhatsAppClient()
+        with patch.dict(os.environ, {
+            "LOCALFLOW_OUTBOUND_TENANT_ALLOWLIST": "pilot-test",
+            "LOCALFLOW_OUTBOUND_RECIPIENT_ALLOWLIST": "0000000000000",
+        }):
+            with patch("app.services.whatsapp.httpx.Client") as transport:
+                with self.assertRaises(WhatsAppConfigurationError):
+                    client.send_text(self.tenant, "9999999999999", "No enviar")
+                transport.assert_not_called()
 
     def test_review_only_cannot_send_even_when_global_outbound_enabled(self):
         self.tenant.workflow_spec = {"inbound_mode": "review_only"}
