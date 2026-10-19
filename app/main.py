@@ -27,5 +27,6 @@ app = FastAPI(
 
 app.include_router(health_router)
 app.include_router(admin_router)
+app.include_router(copilot_router)
 app.include_router(bridge_router)
 app.include_router(whatsapp_router)
