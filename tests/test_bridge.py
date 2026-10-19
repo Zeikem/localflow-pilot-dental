@@ -74,7 +74,10 @@ class BridgeEndpointTests(unittest.TestCase):
         app.dependency_overrides[get_db] = lambda: self.session
         self.patcher = patch(
             "app.api.bridge.get_settings",
-            return_value=SimpleNamespace(localflow_bridge_read_token="bridge-exclusive-read-only-secret-2026"),
+            return_value=SimpleNamespace(
+                localflow_bridge_read_token="bridge-exclusive-read-only-secret-2026",
+                localflow_bridge_tenant_slug="clinic-0",
+            ),
         )
         self.patcher.start()
         self.client = TestClient(app, raise_server_exceptions=True)
@@ -109,12 +112,9 @@ class BridgeEndpointTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, response_text)
         self.assertEqual(payload["events"][0]["category"], "Requiere recepción")
-        self.assertEqual(
-            self.client.get(
-                "/admin/bridge/events?tenant_slug=clinic-1",
-                headers=self.header,
-            ).json()["events"].__len__(), 1,
-        )
+        self.assertEqual(self.client.get(
+            "/admin/bridge/events?tenant_slug=clinic-1", headers=self.header
+        ).status_code, 404)
         self.assertEqual(self.client.get(
             "/admin/bridge/events?tenant_slug=absent", headers=self.header
         ).status_code, 404)
@@ -153,7 +153,7 @@ class BridgeEndpointTests(unittest.TestCase):
         self.assertEqual(self.client.get(
             "/admin/bridge/appointments?tenant_slug=clinic-1",
             headers=self.header,
-        ).json()["appointments"], [])
+        ).status_code, 404)
 
 
 if __name__ == "__main__":
