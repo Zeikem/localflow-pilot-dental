@@ -22,7 +22,7 @@ Each query checks an explicitly named **active** tenant and does not enumerate a
 1. Review this PR and the 61 passing unit tests; merge only after explicit approval.
 2. Railway's current `api-image` service runs `ghcr.io/zeikem/localflow-pilot-dental:railway`, **not** a live GitHub checkout. Merging this PR **will not deploy the changes**. Build and deploy an updated image or connect a suitable repository source, after checking the deployment setup.
 3. Generate a strong, distinct bridge secret and configure the same value under:
-   - Railway `api-image`: `LOCALFLOW_BRIDGE_READ_TOKEN`
+   - Railway `api-image`: `LOCALFLOW_BRIDGE_READ_TOKEN` (32+ chars) **and** `LOCALFLOW_BRIDGE_TENANT_SLUG=dental-pilot-leon`
    - Windows Django private `.env`: `LOCALFLOW_CORE_BRIDGE_READ_TOKEN`
 4. In Windows Django's `.env`, also set:
    - `LOCALFLOW_CORE_BRIDGE_URL=https://api-image-production-7f8d.up.railway.app`
@@ -35,8 +35,8 @@ The Django integration deliberately keeps appointments in **a separate read-only
 ## Scope, limits, security
 
 - This feature makes no contact with patients and cannot send outbound messages.
-- A compromised bridge token may read *administrative* metadata for an explicitly requested tenant. Rotate it if leaked. Do not place secrets in the Git repository.
-- The API currently allows querying any active tenant by slug when a valid bridge token is supplied, so **never share this service's token with client clinics** or use it for a multi-tenant self-service SaaS. A future production release needs a server-side token-to-tenant binding.
+- The bridge is disabled until both `LOCALFLOW_BRIDGE_READ_TOKEN` and `LOCALFLOW_BRIDGE_TENANT_SLUG` are configured. A valid token can read only that single, server-bound tenant. Rotate it if leaked. Do not place secrets in the Git repository.
+- The API refuses to read other clinics even when the request includes a valid credential. Still, **never share this service's token with client clinics** or reuse the same credential for a multi-tenant SaaS.
 - Django validation additionally requires the exact preapproved Railway hostname and tenant slug in local config.
 - Local syncing limits work to 2,000 events per run (20 pages of 100), and displays the newest 200 appointments. This is a pilot limit, not an archival export.
 - Do not migrate to a clinic with real patient data until contracts, authorization, privacy and restore procedures are reviewed.
