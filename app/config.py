@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     whatsapp_verify_token: str = "dev-verify-token"
     whatsapp_app_secret: str = ""
     meta_graph_api_version: str = "v26.0"
+    # Safety switch: no outbound WhatsApp traffic until explicitly approved.
+    whatsapp_outbound_enabled: bool = False
 
     # Obligatorio para endpoints /admin en despliegues reales.
     admin_api_token: str = ""
