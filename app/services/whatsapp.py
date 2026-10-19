@@ -27,14 +27,18 @@ class WhatsAppClient:
             )
         return token
 
-    def _require_outbound_permission(self) -> None:
+    def _require_outbound_permission(self, tenant: Tenant) -> None:
+        # Defense in depth: a review-only clinic can NEVER send, even if
+        # someone turns on the global outbound switch.
+        if (getattr(tenant, 'workflow_spec', None) or {}).get('inbound_mode') == 'review_only':
+            raise WhatsAppConfigurationError('La clínica está limitada a recepción sin envíos.')
         if not self.settings.whatsapp_outbound_enabled:
             raise WhatsAppConfigurationError(
                 'Envíos de WhatsApp desactivados. Requieren autorización y configuración explícita.'
             )
 
     def send_text(self, tenant: Tenant, to_wa_id: str, body: str) -> str | None:
-        self._require_outbound_permission()
+        self._require_outbound_permission(tenant)
         token = self._token_for(tenant)
         url = (
             f"https://graph.facebook.com/"
@@ -80,7 +84,7 @@ class WhatsAppClient:
         language_code: str,
         params: list[str] | None = None,
     ) -> str | None:
-        self._require_outbound_permission()
+        self._require_outbound_permission(tenant)
         token = self._token_for(tenant)
         url = (
             f"https://graph.facebook.com/"
