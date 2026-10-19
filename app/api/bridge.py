@@ -36,6 +36,8 @@ _CURSOR_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA
 
 
 def _tenant(db: Session, slug: str) -> Tenant:
+    if not get_settings().localflow_bridge_tenant_slug or slug != get_settings().localflow_bridge_tenant_slug:
+        raise HTTPException(status_code=404, detail="Clinic not available for this bridge.")
     tenant = db.scalar(
         select(Tenant).where(Tenant.slug == slug, Tenant.active.is_(True))
     )
