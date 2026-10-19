@@ -37,8 +37,15 @@ class WhatsAppClient:
                 'Envíos de WhatsApp desactivados. Requieren autorización y configuración explícita.'
             )
 
+    def _require_pilot_recipient(self, tenant: Tenant, to_wa_id: str) -> None:
+        allowed_tenants = {v.strip() for v in os.getenv('LOCALFLOW_OUTBOUND_TENANT_ALLOWLIST', '').split(',') if v.strip()}
+        allowed_recipients = {v.strip() for v in os.getenv('LOCALFLOW_OUTBOUND_RECIPIENT_ALLOWLIST', '').split(',') if v.strip()}
+        if tenant.slug not in allowed_tenants or to_wa_id not in allowed_recipients:
+            raise WhatsAppConfigurationError('Tenant o destinatario no autorizado para pruebas.')
+
     def send_text(self, tenant: Tenant, to_wa_id: str, body: str) -> str | None:
         self._require_outbound_permission(tenant)
+        self._require_pilot_recipient(tenant, to_wa_id)
         token = self._token_for(tenant)
         url = (
             f"https://graph.facebook.com/"
@@ -85,6 +92,7 @@ class WhatsAppClient:
         params: list[str] | None = None,
     ) -> str | None:
         self._require_outbound_permission(tenant)
+        self._require_pilot_recipient(tenant, to_wa_id)
         token = self._token_for(tenant)
         url = (
             f"https://graph.facebook.com/"
