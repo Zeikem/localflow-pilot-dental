@@ -27,7 +27,14 @@ class WhatsAppClient:
             )
         return token
 
+    def _require_outbound_permission(self) -> None:
+        if not self.settings.whatsapp_outbound_enabled:
+            raise WhatsAppConfigurationError(
+                'Envíos de WhatsApp desactivados. Requieren autorización y configuración explícita.'
+            )
+
     def send_text(self, tenant: Tenant, to_wa_id: str, body: str) -> str | None:
+        self._require_outbound_permission()
         token = self._token_for(tenant)
         url = (
             f"https://graph.facebook.com/"
@@ -73,6 +80,7 @@ class WhatsAppClient:
         language_code: str,
         params: list[str] | None = None,
     ) -> str | None:
+        self._require_outbound_permission()
         token = self._token_for(tenant)
         url = (
             f"https://graph.facebook.com/"
