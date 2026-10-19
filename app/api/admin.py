@@ -143,3 +143,22 @@ def activate_pilot(request: PilotActivationRequest, db: Session = Depends(get_db
     tenant.whatsapp_phone_number_id = phone_id
     db.commit()
     return {"tenant": PILOT_SLUG, "inbound_mode": "conversation", "phone_binding_confirmed": True}
+
+
+class PilotTokenBindingRequest(BaseModel):
+    confirmed_test_only: bool = False
+
+
+@router.post("/pilot/fix-token-binding", dependencies=[Depends(require_admin_token)])
+def fix_pilot_token_binding(request: PilotTokenBindingRequest, db: Session = Depends(get_db)):
+    """Replace placeholder env-name only; never expose or modify secret values."""
+    if not request.confirmed_test_only:
+        raise HTTPException(status_code=400, detail="Explicit test-only confirmation required")
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == PILOT_SLUG).with_for_update())
+    if tenant is None:
+        raise HTTPException(status_code=404, detail="Pilot tenant not found")
+    if tenant.whatsapp_token_env not in ("UNCONFIGURED_PILOT", "DENTAL_PILOT_WHATSAPP_TOKEN"):
+        raise HTTPException(status_code=409, detail="Unexpected credential binding; manual review required")
+    tenant.whatsapp_token_env = "DENTAL_PILOT_WHATSAPP_TOKEN"
+    db.commit()
+    return {"tenant": PILOT_SLUG, "token_variable_name": "DENTAL_PILOT_WHATSAPP_TOKEN"}
