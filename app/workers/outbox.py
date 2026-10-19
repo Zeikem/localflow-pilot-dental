@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import or_, select
 
+from app.config import get_settings
 from app.db import SessionLocal
 from app.models import Appointment, OutboxMessage
 from app.services.whatsapp import WhatsAppClient
@@ -119,6 +120,10 @@ def main() -> None:
     logger.info("Outbox worker iniciado")
 
     while True:
+        if not get_settings().whatsapp_outbound_enabled:
+            # Preserve queued items without claiming/retrying messages.
+            time.sleep(10)
+            continue
         requeue_stale()
         ids = claim_batch()
 
