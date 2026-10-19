@@ -78,6 +78,7 @@ def pilot_status(db: Session = Depends(get_db)):
         "inbound_mode": (tenant.workflow_spec or {}).get("inbound_mode"),
         "phone_number_id_is_numeric": bool(tenant.whatsapp_phone_number_id and tenant.whatsapp_phone_number_id.isdecimal()),
         "pending_outbound": pending,
+        "failed_outbound": db.scalar(select(func.count()).select_from(OutboxMessage).where(OutboxMessage.tenant_id == tenant.id, OutboxMessage.status == "failed")),
         "workflow_configured": bool((tenant.workflow_spec or {}).get("steps")),
     }
 
@@ -162,3 +163,27 @@ def fix_pilot_token_binding(request: PilotTokenBindingRequest, db: Session = Dep
     tenant.whatsapp_token_env = "DENTAL_PILOT_WHATSAPP_TOKEN"
     db.commit()
     return {"tenant": PILOT_SLUG, "token_variable_name": "DENTAL_PILOT_WHATSAPP_TOKEN"}
+
+
+@router.post("/pilot/retry-credential-failure", dependencies=[Depends(require_admin_token)])
+def retry_pilot_credential_failure(db: Session = Depends(get_db)):
+    """Retry only messages failed with obsolete placeholder credential binding."""
+    from datetime import datetime, timezone
+    from sqlalchemy import update
+    tenant = db.scalar(select(Tenant).where(Tenant.slug == PILOT_SLUG))
+    if tenant is None or tenant.whatsapp_token_env != "DENTAL_PILOT_WHATSAPP_TOKEN":
+        raise HTTPException(status_code=409, detail="Pilot credential binding not ready")
+    rows = db.scalars(select(OutboxMessage).where(
+        OutboxMessage.tenant_id == tenant.id,
+        OutboxMessage.status == "failed",
+        OutboxMessage.last_error.like("%UNCONFIGURED_PILOT%"),
+    ).with_for_update()).all()
+    if len(rows) > 1:
+        raise HTTPException(status_code=409, detail="Multiple failed messages require manual review")
+    for row in rows:
+        row.status = "pending"
+        row.attempts = 0
+        row.next_attempt_at = datetime.now(timezone.utc)
+        row.locked_at = None
+    db.commit()
+    return {"requeued": len(rows)}
