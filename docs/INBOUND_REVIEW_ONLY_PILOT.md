@@ -8,7 +8,7 @@ Para una clínica con `workflow_spec.inbound_mode = "review_only"`:
 - Registra solo el tipo permitido y la hora, una huella HMAC del evento y una huella HMAC truncada y estable del remitente; el contacto queda marcado para recepción humana.
 - Descarta inmediatamente texto del mensaje, teléfono, nombre de WhatsApp, adjuntos y JSON original. No guarda esos campos en la base.
 - No llama al motor de conversación, ni ofrece horarios, ni reserva citas, ni genera mensajes pendientes.
-- Deduplica eventos, incluso en carreras de integridad. Un duplicado responde sin crear filas nuevas.
+- Deduplica eventos: si hay un conflicto de unicidad, revierte y reintenta una vez. Si se sigue sin poder guardar, responde HTTP 503 para que Meta reintente en lugar de reconocer una entrega perdida. Un duplicado real no crea nuevas filas.
 - Si falta `LOCALFLOW_INBOUND_PSEUDONYM_KEY` de al menos 32 bytes, responde HTTP 503 sin guardar datos ni aceptar el mensaje. Meta puede reintentar.
 - Rechaza firmas inválidas, así como cuerpos superiores a 128 KiB.
 - Con un token de lectura válido y la clínica autorizada, el puente `GET /admin/bridge/events` muestra solo «Requiere recepción».
@@ -27,7 +27,7 @@ Estas protecciones **solo existen cuando tanto API como worker ejecutan las nuev
 cd C:\Users\Usuario\Documents\LocalFlow-Core-Bridge-20261019\localflow-pilot-dental-main
 ..\.venv\Scripts\python.exe -m unittest discover -s tests -q
 ```
-Resultado local: **77/77 pruebas aprobadas**, sin llamadas a WhatsApp real. Hay cobertura de modo solo recepción, firmas, faltas de secreto, duplicación, medios, tamaño, filtrado de datos personales, rutas protegidas, agenda y barreras de envío. La batería previa de conversación asistida también pasa.
+Resultado local: **81/81 pruebas aprobadas**, sin llamadas a WhatsApp real. Hay cobertura de modo solo recepción, firmas, faltas de secreto, duplicación, medios, tamaño, filtrado de datos personales, rutas protegidas, agenda y barreras de envío. La batería previa de conversación asistida también pasa.
 
 ## Secuencia de activación futura, todavía NO autorizada ni ejecutada
 1. Revisar cambios de la rama derivada de PR #8; planificar reversión y revisar que no haya trabajo real en la cola.
