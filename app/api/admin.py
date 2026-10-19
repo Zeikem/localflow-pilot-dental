@@ -83,8 +83,24 @@ def pilot_status(db: Session = Depends(get_db)):
 
 
 class PilotActivationRequest(BaseModel):
-    phone_number_id: str
+    phone_number_id: str | None = None
     confirmed_test_only: bool = False
+
+
+PILOT_STARTER_WORKFLOW = {
+    "steps": [
+        {"key": "servicio", "kind": "choice",
+         "prompt": "Hola, soy el asistente de recepción. ¿En qué podemos ayudarte?",
+         "choices": ["Consulta dental", "Limpieza dental", "Otro tratamiento", "Hablar con recepción"]},
+        {"key": "nombre", "kind": "text",
+         "prompt": "¿A nombre de quién podemos registrar tu solicitud?"},
+        {"key": "horario_preferido", "kind": "text",
+         "prompt": "¿Qué día y horario prefieres? Recepción confirmará disponibilidad."},
+    ],
+    "completion_message": "Gracias. Registré tu solicitud; recepción deberá confirmar la cita. Si necesitas hablar con una persona, escribe ASESOR.",
+    "handoff_message": "Entendido. Una persona de recepción continuará contigo.",
+}
+
 
 
 @router.post("/pilot/activate", dependencies=[Depends(require_admin_token)])
@@ -92,7 +108,9 @@ def activate_pilot(request: PilotActivationRequest, db: Session = Depends(get_db
     """Only the named test tenant may transition, never enable global sending."""
     if not request.confirmed_test_only:
         raise HTTPException(status_code=400, detail="Explicit test-only confirmation required")
-    if not request.phone_number_id.isdecimal() or not 10 <= len(request.phone_number_id) <= 24:
+    if request.phone_number_id is not None and (
+        not request.phone_number_id.isdecimal() or not 10 <= len(request.phone_number_id) <= 24
+    ):
         raise HTTPException(status_code=400, detail="Valid numeric Meta Phone Number ID required")
     tenant = db.scalar(select(Tenant).where(Tenant.slug == PILOT_SLUG).with_for_update())
     if tenant is None:
@@ -101,12 +119,15 @@ def activate_pilot(request: PilotActivationRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=409, detail="Inactive tenant")
     spec = dict(tenant.workflow_spec or {})
     if not spec.get("steps"):
-        raise HTTPException(status_code=409, detail="Conversational workflow not configured")
+        spec.update(PILOT_STARTER_WORKFLOW)
     old_phone_id = tenant.whatsapp_phone_number_id
-    if old_phone_id.isdecimal() and old_phone_id != request.phone_number_id:
+    phone_id = request.phone_number_id or old_phone_id
+    if not phone_id.isdecimal() or not 10 <= len(phone_id) <= 24:
+        raise HTTPException(status_code=409, detail="Numeric Meta Phone Number ID missing")
+    if old_phone_id.isdecimal() and old_phone_id != phone_id:
         raise HTTPException(status_code=409, detail="Existing Meta phone binding differs")
     conflicting = db.scalar(select(Tenant.id).where(
-        Tenant.whatsapp_phone_number_id == request.phone_number_id,
+        Tenant.whatsapp_phone_number_id == phone_id,
         Tenant.id != tenant.id,
     ))
     if conflicting:
@@ -119,6 +140,6 @@ def activate_pilot(request: PilotActivationRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=409, detail="Existing outbound queue requires review")
     spec["inbound_mode"] = "conversation"
     tenant.workflow_spec = spec
-    tenant.whatsapp_phone_number_id = request.phone_number_id
+    tenant.whatsapp_phone_number_id = phone_id
     db.commit()
     return {"tenant": PILOT_SLUG, "inbound_mode": "conversation", "phone_binding_confirmed": True}
