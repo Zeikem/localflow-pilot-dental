@@ -68,6 +68,13 @@ def deliver(message_id: str, client: WhatsAppClient) -> None:
             return
 
         tenant = row.tenant
+        if (tenant.workflow_spec or {}).get('inbound_mode') == 'review_only':
+            # Block old queued items as well; no dispatch is allowed for this clinic.
+            row.status = 'blocked'
+            row.locked_at = None
+            row.last_error = 'Envío bloqueado por modo de recepción humana.'
+            db.commit()
+            return
 
         # Appointment automations are only valid while the appointment remains confirmed.
         if row.appointment_id and row.message_kind == "template":
