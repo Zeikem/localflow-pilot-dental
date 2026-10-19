@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     # Fail-closed pilot tenant binding; one API bridge credential per single clinic.
     localflow_bridge_tenant_slug: str = ""
 
+    # Staff-only AI drafts; off by default. Never send to WhatsApp automatically.
+    localflow_copilot_token: str = ""
+    localflow_ai_enabled: bool = False
+    localflow_ai_api_key: str = ""
+    localflow_ai_model: str = "gpt-4o-mini"
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
