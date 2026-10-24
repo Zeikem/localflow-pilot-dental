@@ -1,8 +1,8 @@
-# LocalFlow — Playbook comercial y operativo
+# Impulvera — Playbook comercial y operativo
 
 ## Definición comercial
 
-**LocalFlow instala un sistema de captación, atención y agendamiento para negocios locales que convierte consultas digitales en citas atendidas y con seguimiento.**
+**Impulvera instala un sistema de captación, atención y agendamiento para negocios locales que convierte consultas digitales en citas atendidas y con seguimiento.**
 
 No se vende “un chatbot” ni “software”. Se vende:
 - respuesta inmediata;
