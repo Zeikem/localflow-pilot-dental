@@ -17,7 +17,7 @@ class ReactivateLeadRequest(BaseModel):
 
 
 def require_admin_token(
-    x_localflow_admin_token: str | None = Header(default=None),
+    x_impulvera_admin_token: str | None = Header(default=None),
 ) -> None:
     expected = get_settings().admin_api_token
     if not expected:
@@ -25,8 +25,8 @@ def require_admin_token(
             status_code=503,
             detail="Admin API is disabled until ADMIN_API_TOKEN is configured.",
         )
-    if not x_localflow_admin_token or not hmac.compare_digest(
-        x_localflow_admin_token,
+    if not x_impulvera_admin_token or not hmac.compare_digest(
+        x_impulvera_admin_token,
         expected,
     ):
         raise HTTPException(status_code=401, detail="Invalid admin token")
