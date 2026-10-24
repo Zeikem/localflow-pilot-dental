@@ -137,13 +137,13 @@
       "appointment_reminder": {
         "enabled": false,
         "before_minutes": 1440,
-        "template_name": "recordatorio_cita_localflow",
+        "template_name": "recordatorio_cita_impulvera",
         "language": "es_MX"
       },
       "review_request": {
         "enabled": false,
         "after_minutes": 120,
-        "template_name": "solicitud_resena_localflow",
+        "template_name": "solicitud_resena_impulvera",
         "language": "es_MX"
       }
     }
