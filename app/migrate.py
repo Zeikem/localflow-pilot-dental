@@ -9,7 +9,7 @@ from app.db import Base, DATABASE_URL, engine
 
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
-LOCK_NAME = "localflow-schema-migrations"
+LOCK_NAME = "impulvera-schema-migrations"
 LOCK_ID = int.from_bytes(
     hashlib.sha256(LOCK_NAME.encode("utf-8")).digest()[:8],
     byteorder="big",
