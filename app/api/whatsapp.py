@@ -8,11 +8,12 @@ from app.config import get_settings
 from app.core.security import verify_meta_signature
 from app.db import get_db
 from app.services.conversation import process_inbound_message
+from app.services.n8n import notify_inbound_messages
 from app.services.webhook_parser import extract_inbound_messages
 
 
 router = APIRouter(prefix="/webhooks/whatsapp", tags=["whatsapp"])
-logger = logging.getLogger("localflow.webhook")
+logger = logging.getLogger("impulvera.webhook")
 
 
 @router.get("")
@@ -64,11 +65,14 @@ async def receive_webhook(request: Request, db: Session = Depends(get_db)):
                 msg.message_type,
             )
 
+    # n8n is an optional downstream automation layer. A delivery failure must
+    # never make Meta retry a valid inbound message or block the CRM workflow.
+    await notify_inbound_messages(messages)
+
     logger.info(
         "whatsapp_webhook_received messages_found=%s processed=%s",
         len(messages),
         processed,
     )
 
-    # Siempre responder rápido a Meta. El envío de salida lo hace el worker.
     return {"received": True, "messages_found": len(messages), "processed": processed}
