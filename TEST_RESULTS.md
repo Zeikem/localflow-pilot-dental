@@ -1,4 +1,4 @@
-# LocalFlow Core v0.3 — Resultado de validación
+# Impulvera Core v0.3 — Resultado de validación
 
 Suite automatizada final:
 
