@@ -2,11 +2,11 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: localflow
-      POSTGRES_USER: localflow
-      POSTGRES_PASSWORD: localflow
+      POSTGRES_DB: impulvera
+      POSTGRES_USER: impulvera
+      POSTGRES_PASSWORD: impulvera
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U localflow -d localflow"]
+      test: ["CMD-SHELL", "pg_isready -U impulvera -d impulvera"]
       interval: 5s
       timeout: 3s
       retries: 10
