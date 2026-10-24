@@ -2,9 +2,9 @@
 
 Arquitectura de producción:
 - PostgreSQL administrado por Railway.
-- Servicio `localflow-api` desde este mismo repositorio.
-- Servicio `localflow-outbox` desde el mismo repositorio.
-- Servicio `localflow-calendar` desde el mismo repositorio.
+- Servicio `impulvera-api` desde este mismo repositorio.
+- Servicio `impulvera-outbox` desde el mismo repositorio.
+- Servicio `impulvera-calendar` desde el mismo repositorio.
 
 El `Dockerfile` es común. Los comandos de inicio deben configurarse por servicio:
 
