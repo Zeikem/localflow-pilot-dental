@@ -2,11 +2,11 @@
 
 Los mensajes programados fuera de una conversación activa deben prepararse como plantillas aprobadas por Meta cuando corresponda.
 
-LocalFlow espera por defecto dos plantillas configurables por tenant.
+Impulvera espera por defecto dos plantillas configurables por tenant.
 
 ## 1. Recordatorio
 
-Nombre sugerido: `recordatorio_cita_localflow`
+Nombre sugerido: `recordatorio_cita_impulvera`
 
 Parámetros de cuerpo, en orden:
 1. nombre del cliente;
@@ -18,7 +18,7 @@ Ejemplo conceptual:
 
 ## 2. Solicitud de reseña
 
-Nombre sugerido: `solicitud_resena_localflow`
+Nombre sugerido: `solicitud_resena_impulvera`
 
 Parámetros:
 1. nombre;
