@@ -1,4 +1,4 @@
--- LocalFlow Core v0.2
+-- Impulvera Core v0.2
 -- Agenda interna multi-tenant.
 -- Ejecutar sobre PostgreSQL existente de v0.1 antes de desplegar v0.2.
 -- La migración solo agrega tablas nuevas; no modifica columnas existentes.
