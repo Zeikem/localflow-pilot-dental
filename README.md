@@ -1,4 +1,4 @@
-# LocalFlow Core v0.3
+# Impulvera Core v0.3
 
 Motor multiempresa para **captación, atención digital y agendamiento automatizado** de negocios locales.
 
@@ -38,7 +38,7 @@ Diseñado para que 80–90% del código sea común y la personalización por cli
 
 ## Límites deliberados
 
-LocalFlow no contiene credenciales reales ni plantillas aprobadas por Meta. Para activar un cliente real debes configurar:
+Impulvera no contiene credenciales reales ni plantillas aprobadas por Meta. Para activar un cliente real debes configurar:
 - WhatsApp Cloud API;
 - tokens/secretos;
 - dominio HTTPS/webhook;
@@ -117,7 +117,7 @@ Para reactivarlo:
 
 ```http
 POST /admin/leads/{lead_id}/reactivate
-X-LocalFlow-Admin-Token: <ADMIN_API_TOKEN>
+X-Impulvera-Admin-Token: <ADMIN_API_TOKEN>
 Content-Type: application/json
 
 {"reset_flow": false}
