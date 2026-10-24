@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="LocalFlow Core",
+    title="Impulvera Core",
     version="0.3.0",
     lifespan=lifespan,
 )
