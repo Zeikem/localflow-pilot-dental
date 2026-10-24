@@ -35,7 +35,7 @@ class BusyInterval:
 class GoogleCalendarGateway:
     """Thin Google Calendar API wrapper.
 
-    Credentials are loaded lazily so LocalFlow can still run with the internal
+    Credentials are loaded lazily so Impulvera can still run with the internal
     provider without Google libraries or credentials being used at runtime.
     """
 
@@ -173,7 +173,7 @@ class GoogleCalendarGateway:
                 timeMin=_utc(start).isoformat().replace("+00:00", "Z"),
                 timeMax=_utc(end).isoformat().replace("+00:00", "Z"),
                 privateExtendedProperty=(
-                    f"localflow_idempotency_key={idempotency_key}"
+                    f"impulvera_idempotency_key={idempotency_key}"
                 ),
                 singleEvents=True,
                 maxResults=2,
@@ -214,7 +214,7 @@ class GoogleCalendarGateway:
             },
             "extendedProperties": {
                 "private": {
-                    "localflow_idempotency_key": idempotency_key,
+                    "impulvera_idempotency_key": idempotency_key,
                 }
             },
         }
