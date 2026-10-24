@@ -1,4 +1,4 @@
--- LocalFlow Core v0.3
+-- Impulvera Core v0.3
 -- Google Calendar sync + WhatsApp template scheduling.
 
 ALTER TABLE outbox_messages
