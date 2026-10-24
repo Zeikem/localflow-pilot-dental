@@ -8,8 +8,8 @@ No compartas secretos por texto si puedes conectarlos directamente al servicio.
 - token de acceso del número
 - verify token elegido para el webhook
 - aprobación de las plantillas:
-  - `recordatorio_cita_localflow`
-  - `solicitud_resena_localflow`
+  - `recordatorio_cita_impulvera`
+  - `solicitud_resena_impulvera`
 
 ## Clínica piloto
 - nombre comercial
