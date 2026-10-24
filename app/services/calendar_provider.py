@@ -238,7 +238,7 @@ class GoogleCalendarProvider:
                 "Ese horario se ocupó directamente en Google Calendar. Elige otro."
             )
 
-        idempotency_key = f"localflow:{tenant.id}:{appointment.id}"
+        idempotency_key = f"impulvera:{tenant.id}:{appointment.id}"
         event_id = gateway.find_event_id_by_idempotency(
             calendar_id=calendar_id,
             idempotency_key=idempotency_key,
@@ -251,7 +251,7 @@ class GoogleCalendarProvider:
             display_name = str((lead.answers or {}).get("nombre", "")).strip() if lead else ""
             summary = f"{tenant.name} · {appointment.service_key}"
             description = (
-                f"Reserva LocalFlow {appointment.id}"
+                f"Reserva Impulvera {appointment.id}"
                 + (f"\nCliente: {display_name}" if display_name else "")
             )
             event_id = gateway.create_event(
@@ -305,7 +305,7 @@ class GoogleCalendarProvider:
         calendar_id = None
         if appointment.external_event_id:
             # Validate before changing internal state, so configuration errors cannot
-            # leave Google confirmed while LocalFlow says cancelled.
+            # leave Google confirmed while Impulvera says cancelled.
             calendar_id = self._calendar_id(tenant, appointment.resource_key)
 
         cancelled = cancel_appointment(db, appointment)
