@@ -1,5 +1,5 @@
 [project]
-name = "localflow-core"
+name = "impulvera-core"
 version = "0.3.0"
 description = "Motor multi-tenant para captación y automatización por WhatsApp"
 requires-python = ">=3.11"
